@@ -88,6 +88,14 @@ class TargetEntityController {
   targets = [];
 
   /**
+   * Maximum number of targets that can live at a time
+   * Default is 1
+   * @type {number}
+   * @private
+   */
+  targetsLimit = 1;
+
+  /**
    * Shoot at this coordinates at next update
    * This should be most recent left clicks
    *
@@ -111,7 +119,7 @@ class TargetEntityController {
     this.targets = this.targets.filter((entity) => entity.ttd >= 0);
 
     // Generate new target if needed
-    if (this.targets.length !== 1) {
+    if (this.targets.length < this.targetsLimit) {
       this.generateNewTarget();
     }
 
@@ -124,6 +132,10 @@ class TargetEntityController {
   }
 
   generateNewTarget() {
+    console.assert(
+      this.targets.length < this.targetsLimit,
+      'Targets entities overflowing'
+    );
     this.targets.push(TargetEntity.random());
   }
 }
