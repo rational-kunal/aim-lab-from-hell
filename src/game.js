@@ -25,15 +25,16 @@ const gameConfig = {
 class TargetEntity {
   /**
    * Base Target Entity
-   * @param {number} x // x-coordinate
-   * @param {number} y // y-coordinate
-   * @param {number} r // radius
-   * @param {number} ttd // ticks to die in
+   * @param {number} x x-coordinate
+   * @param {number} y y-coordinate
+   * @param {number} r radius
+   * @param {number} ttd ticks to die in
    */
   constructor(x, y, r, ttd) {
     this.x = x;
     this.y = y;
     this.r = r;
+    this.r2 = r ** 2;
     this.ttd = ttd;
   }
 
@@ -61,6 +62,15 @@ class TargetEntity {
     ctx.arc(this.x, this.y, this.r, 0, 2 * Math.PI);
     ctx.fill();
   }
+
+  /**
+   * Returns true if the entity can collide with given coordinate
+   * @param {{x: number, y: number}} coordinate
+   * @returns {boolean}
+   */
+  canCollideWith({ x, y }) {
+    return (this.x - x) ** 2 + (this.y - y) ** 2 < this.r2;
+  }
 }
 
 /**
@@ -77,18 +87,36 @@ class TargetEntityController {
    */
   targets = [];
 
+  /**
+   * Shoot at this coordinates at next update
+   * This should be most recent left clicks
+   *
+   * @type {{x: number, y: number} | undefined}
+   * @public
+   */
+  shootAt = undefined;
+
   update() {
     // Update existing targets
     this.targets.forEach((entity) => {
+      // Check whether user shot any entity
+      if (this.shootAt && entity.canCollideWith(this.shootAt)) {
+        entity.ttd = 0; // Immediatly shoot the entity
+      }
+
       entity.update();
     });
 
+    // Remove the targets which are dead
     this.targets = this.targets.filter((entity) => entity.ttd >= 0);
 
     // Generate new target if needed
     if (this.targets.length !== 1) {
       this.generateNewTarget();
     }
+
+    // Clear the previous shot
+    this.shootAt = undefined;
   }
 
   draw() {
@@ -115,6 +143,14 @@ function drawGame() {
   targetEntityController.draw();
 }
 
+/**
+ * User did left click on canvas
+ * @param {{x: number, y: number}} coordinate coordinates of left click relative to canvas
+ */
+function didLeftClick(coordinate) {
+  targetEntityController.shootAt = coordinate;
+}
+
 // ============================================================================
 
 function gameLoop() {
@@ -136,6 +172,23 @@ function didKeyDown(event) {
   if (event.key === ' ') {
     gameConfig.paused ? play() : pause();
   }
+}
+
+/**
+ * Called on mouse click
+ * @param {MouseEvent} event
+ */
+function didClick(event) {
+  if (event.button !== 0) {
+    return;
+  }
+
+  const { clientX, clientY } = event;
+  const { x, y } = canvasEl.getBoundingClientRect();
+  const relativeXY = { x: clientX - x, y: clientY - y };
+  console.info('Did Click', relativeXY);
+
+  didLeftClick(relativeXY);
 }
 
 // ============================================================================
@@ -196,7 +249,8 @@ function initializeGame() {
 
 function addEventListners() {
   // Add key press event listener
-  document.addEventListener('keydown', (event) => {
-    didKeyDown(event);
-  });
+  document.addEventListener('keydown', didKeyDown);
+
+  // Add mouse click listner
+  canvasEl.addEventListener('click', didClick);
 }
