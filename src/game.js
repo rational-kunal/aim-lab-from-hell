@@ -357,6 +357,9 @@ function didClick(event) {
 
   if (!gameConfig.paused()) {
     engineDidLeftClick(relativeXY);
+  } else {
+    // Start the game
+    play();
   }
 }
 
