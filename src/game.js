@@ -8,6 +8,19 @@ const TARGET_ENTITY_RADIUS = 25;
 const TARGET_ENTITY_TTD = 20;
 const TARGET_ENTITY_START_TTD = 20;
 
+const GAME_LIVES_AT_START = 5;
+
+/**
+ * @readonly
+ * @enum {string}
+ */
+const GameStatus = {
+  NewGame: 'NewGame',
+  Playing: 'Playing',
+  Paused: 'Paused',
+  GameOver: 'GameOver',
+};
+
 const gameConfig = {
   // Loop configs
   fps: 10,
@@ -17,7 +30,17 @@ const gameConfig = {
   // Game variables
   width: 500,
   height: 500,
-  paused: true,
+
+  // Game status
+  /** @type {GameStatus} */
+  status: GameStatus.NewGame,
+  paused: function () {
+    return (
+      this.status === GameStatus.Paused ||
+      this.status === GameStatus.NewGame ||
+      this.status === GameStatus.GameOver
+    );
+  },
 };
 
 // ============================================================================
@@ -143,10 +166,6 @@ class TargetEntityController {
     this.targets.forEach((entity) => entity.draw());
   }
 
-  clearEntities() {
-    this.targets = [];
-  }
-
   generateNewTarget() {
     console.assert(
       this.targets.length < this.targetsLimit,
@@ -155,7 +174,7 @@ class TargetEntityController {
     this.targets.push(TargetEntity.random());
   }
 }
-const targetEntityController = new TargetEntityController();
+let targetEntityController = new TargetEntityController();
 
 // ============================================================================
 // Game Manager
@@ -164,13 +183,11 @@ class GameManager {
   /**
    * If game is in progress
    * @type {boolean}
-   * @public
    */
   isGameInProgress = false;
 
   /**
    * Current score i.e. number of hits that killed target
-   * @type {number}
    * @private
    */
   currentScore = 0;
@@ -178,12 +195,26 @@ class GameManager {
   /**
    * Current misses i.e. number of hits that missed target
    * @type {number}
-   * @private
    */
   currentMiss = 0;
 
+  currentLives = GAME_LIVES_AT_START;
+
   startGame() {
     this.isGameInProgress = true;
+  }
+
+  resetGame() {
+    this.isGameInProgress = false;
+    targetEntityController = new TargetEntityController();
+
+    // Reset all scores
+    this.currentLives = GAME_LIVES_AT_START;
+    this.currentMiss = 0;
+    this.currentScore = 0;
+
+    // Pause game
+    gameOver();
   }
 
   pauseGame() {
@@ -197,7 +228,15 @@ class GameManager {
 
   didMiss() {
     this.currentMiss += 1;
-    console.info(`[miss] current misses: ${this.currentMiss}`);
+    this.currentLives -= 1;
+    console.info(
+      `[miss] curent misses: ${this.currentMiss}, current lives: ${this.currentLives}`
+    );
+
+    // Its game over of there are no more lives.
+    if (this.currentLives <= 0) {
+      this.resetGame();
+    }
   }
 }
 const gameManager = new GameManager();
@@ -251,7 +290,7 @@ function gameLoop() {
 function didKeyDown(event) {
   // Play or pause game if "Spacebar" is pressed
   if (event.key === ' ') {
-    gameConfig.paused ? play() : pause();
+    gameConfig.paused() ? play() : pause();
   }
 }
 
@@ -268,7 +307,7 @@ function didClick(event) {
   const { x, y } = canvasEl.getBoundingClientRect();
   const relativeXY = { x: clientX - x, y: clientY - y };
 
-  if (!gameConfig.paused) {
+  if (!gameConfig.paused()) {
     engineDidLeftClick(relativeXY);
   }
 }
@@ -277,14 +316,19 @@ function didClick(event) {
 // Game Lifecycle
 
 function pause() {
-  gameConfig.paused = true;
+  gameConfig.status = GameStatus.Paused;
   console.info('[game] paused');
 
   engineDidPause();
 }
 
 function play() {
-  gameConfig.paused = false;
+  // Clear console if started playing after Game Over
+  if (gameConfig.status === GameStatus.GameOver) {
+    console.clear();
+  }
+
+  gameConfig.status = GameStatus.Playing;
   console.info('[game] started');
 
   engineDidPlay();
@@ -292,17 +336,22 @@ function play() {
   startGameLoop();
 }
 
+function gameOver() {
+  console.info('[game] over');
+  gameConfig.status = GameStatus.GameOver;
+}
+
 // ============================================================================
 // Game Loop Triggering
 
 function startGameLoop() {
-  console.assert(!gameConfig.paused, 'starting loop when game is paused');
+  console.assert(!gameConfig.paused(), 'starting loop when game is paused');
   window.requestAnimationFrame(triggerGameLoop);
 }
 
 function triggerGameLoop() {
   // Request for next frame
-  if (!gameConfig.paused) {
+  if (!gameConfig.paused()) {
     window.requestAnimationFrame(triggerGameLoop);
   }
 
