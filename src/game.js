@@ -4,6 +4,7 @@ const canvasEl = dom('game');
 /** @type {CanvasRenderingContext2D} */
 const ctx = canvasEl.getContext('2d');
 
+const TARGET_ENTITY_SPAWN_PADDING = 20;
 const TARGET_ENTITY_RADIUS = 25;
 const TARGET_ENTITY_START_TTD = 30;
 const TARGET_ENTITY_MAX_TTD = 10;
@@ -29,8 +30,9 @@ const gameConfig = {
   then: Date.now(),
 
   // Game variables
-  width: 500,
-  height: 500,
+  // Size will be derived from element at the start
+  width: null,
+  height: null,
 
   // Game status
   /** @type {GameStatus} */
@@ -69,7 +71,7 @@ class TargetEntity {
    * @returns {TargetEntity}
    */
   static random(tdd = TARGET_ENTITY_START_TTD) {
-    const r = TARGET_ENTITY_RADIUS + 1;
+    const r = TARGET_ENTITY_RADIUS + TARGET_ENTITY_SPAWN_PADDING;
     return new TargetEntity(
       randomNumber(r, gameConfig.width - r),
       randomNumber(r, gameConfig.height - r),
@@ -208,10 +210,14 @@ class HTMLManager {
   }
 
   update() {
-    dom('IN').innerText = this.instructionsPerGameStatus[gameConfig.status];
-    dom('SC').innerText = gameManager.currentScore;
-    dom('LI').innerText =
-      gameConfig.status === GameStatus.GameOver ? 0 : gameManager.currentLives;
+    dom('ui-instructions').innerText =
+      this.instructionsPerGameStatus[gameConfig.status];
+    const lives =
+      gameConfig.status === GameStatus.GameOver
+        ? '🕱'
+        : '♥'.repeat(gameManager.currentLives);
+    const allScore = `${lives} • ${gameManager.currentScore}`;
+    dom('ui-all-score').innerText = allScore;
   }
 }
 const htmlManager = new HTMLManager();
@@ -429,6 +435,8 @@ function initializeGame() {
   console.info('[intialize]');
   addEventListners();
 
+  gameConfig.width = canvasEl.clientWidth;
+  gameConfig.height = canvasEl.clientHeight;
   canvasEl.width = gameConfig.width;
   canvasEl.height = gameConfig.height;
 

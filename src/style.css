@@ -1,4 +1,42 @@
-h1 {
-  color: hotpink;
-  font-family: cursive;
+* {
+  padding: 0;
+  margin: 0;
+
+  font-size: x-large;
+  font-family: monospace;
+}
+
+body {
+  height: 100%;
+  width: 100%;
+  background-color: #2b0719;
+  color: #f7f7f9;
+}
+
+#game {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+#ui-container {
+  width: 80%;
+  margin: auto;
+  margin-top: 24px;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  column-gap: 12px;
+  justify-content: flex-end;
+}
+
+#ui-instructions {
+  flex-grow: 1;
+
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  column-gap: 12px;
 }
