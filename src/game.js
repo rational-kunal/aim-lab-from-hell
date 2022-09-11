@@ -5,8 +5,9 @@ const canvasEl = document.getElementById('game');
 const ctx = canvasEl.getContext('2d');
 
 const TARGET_ENTITY_RADIUS = 25;
-const TARGET_ENTITY_TTD = 20;
-const TARGET_ENTITY_START_TTD = 20;
+const TARGET_ENTITY_START_TTD = 30;
+const TARGET_ENTITY_MAX_TTD = 10;
+const TARGET_ENTITY_TDD_DIFF_PER_UPDATE = 0.05;
 
 const GAME_LIVES_AT_START = 5;
 
@@ -64,15 +65,16 @@ class TargetEntity {
 
   /**
    * Returns Target Entity at random co-ordinates
+   * @param {number} ttd Time To Die
    * @returns {TargetEntity}
    */
-  static random() {
+  static random(tdd = TARGET_ENTITY_START_TTD) {
     const r = TARGET_ENTITY_RADIUS + 1;
     return new TargetEntity(
       randomNumber(r, gameConfig.width - r),
       randomNumber(r, gameConfig.height - r),
       TARGET_ENTITY_RADIUS,
-      TARGET_ENTITY_TTD
+      tdd
     );
   }
 
@@ -100,7 +102,6 @@ class TargetEntity {
 /**
  * Controls Target Entities.
  * @class
- * @constructor
  * @private
  */
 class TargetEntityController {
@@ -127,6 +128,16 @@ class TargetEntityController {
    * @public
    */
   shootAt = undefined;
+
+  /**
+   * Internal current max tdd.
+   * @type {number}
+   * @private
+   */
+  _currentMaxTdd = TARGET_ENTITY_START_TTD;
+  get currentMaxTdd() {
+    return Math.max(Math.floor(this._currentMaxTdd), TARGET_ENTITY_MAX_TTD);
+  }
 
   update() {
     // Update existing targets
@@ -160,6 +171,9 @@ class TargetEntityController {
 
     // Clear the previous shot
     this.shootAt = undefined;
+
+    // Reduce tdd for next Target
+    this._currentMaxTdd -= TARGET_ENTITY_TDD_DIFF_PER_UPDATE;
   }
 
   draw() {
@@ -171,7 +185,7 @@ class TargetEntityController {
       this.targets.length < this.targetsLimit,
       'Targets entities overflowing'
     );
-    this.targets.push(TargetEntity.random());
+    this.targets.push(TargetEntity.random(this.currentMaxTdd));
   }
 }
 let targetEntityController = new TargetEntityController();
