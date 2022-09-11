@@ -1,5 +1,5 @@
 /** @type {HTMLCanvasElement} */
-const canvasEl = document.getElementById('game');
+const canvasEl = dom('game');
 
 /** @type {CanvasRenderingContext2D} */
 const ctx = canvasEl.getContext('2d');
@@ -191,6 +191,32 @@ class TargetEntityController {
 let targetEntityController = new TargetEntityController();
 
 // ============================================================================
+// HTML Manager
+
+class HTMLManager {
+  instructionsPerGameStatus = {};
+
+  constructor() {
+    this.instructionsPerGameStatus[GameStatus.NewGame] =
+      'Dont let em loose and dont miss • Fire to start game';
+    this.instructionsPerGameStatus[GameStatus.Playing] =
+      'Playing • Spacebar to pause';
+    this.instructionsPerGameStatus[GameStatus.Paused] =
+      'Paused • Fire to start';
+    this.instructionsPerGameStatus[GameStatus.GameOver] =
+      'All Hell Loose • Fire to re-start';
+  }
+
+  update() {
+    dom('IN').innerText = this.instructionsPerGameStatus[gameConfig.status];
+    dom('SC').innerText = gameManager.currentScore;
+    dom('LI').innerText =
+      gameConfig.status === GameStatus.GameOver ? 0 : gameManager.currentLives;
+  }
+}
+const htmlManager = new HTMLManager();
+
+// ============================================================================
 // Game Manager
 
 class GameManager {
@@ -202,7 +228,7 @@ class GameManager {
 
   /**
    * Current score i.e. number of hits that killed target
-   * @private
+   * @type {number}
    */
   currentScore = 0;
 
@@ -258,18 +284,26 @@ const gameManager = new GameManager();
 // ============================================================================
 // Game engine callbacks
 
+function engineDidInitialize() {
+  htmlManager.update();
+}
+
 function engineDidPause() {
   gameManager.pauseGame();
+  htmlManager.update();
 }
 
 function engineDidPlay() {
   gameManager.startGame();
+  htmlManager.update();
 }
 
 function engineDidUpdate() {
   if (gameManager.isGameInProgress) {
     targetEntityController.update();
   }
+
+  htmlManager.update();
 }
 
 function engineDidDraw() {
@@ -394,6 +428,8 @@ function initializeGame() {
 
   canvasEl.width = gameConfig.width;
   canvasEl.height = gameConfig.height;
+
+  engineDidInitialize();
 }
 
 function addEventListners() {
