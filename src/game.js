@@ -6,6 +6,7 @@ const ctx = canvasEl.getContext('2d');
 
 const TARGET_ENTITY_RADIUS = 25;
 const TARGET_ENTITY_TTD = 20;
+const TARGET_ENTITY_START_TTD = 20;
 
 const gameConfig = {
   // Loop configs
@@ -106,17 +107,28 @@ class TargetEntityController {
 
   update() {
     // Update existing targets
+    let numberOfHits = 0;
     this.targets.forEach((entity) => {
       // Check whether user shot any entity
       if (this.shootAt && entity.canCollideWith(this.shootAt)) {
-        entity.ttd = 0; // Immediatly shoot the entity
+        gameManager.didHit();
+        numberOfHits += 1;
+        // Immediatly shoot the entity
+        entity.ttd = -1; // -1 cause 0 means natural death
       }
 
       entity.update();
     });
 
+    // If user shot but there were no hits it was a miss
+    const didShotMissedTarget = this.shootAt && numberOfHits === 0;
+    const didTargetExpired = this.targets.some((entity) => entity.ttd === 0);
+    if (didShotMissedTarget || didTargetExpired) {
+      gameManager.didMiss();
+    }
+
     // Remove the targets which are dead
-    this.targets = this.targets.filter((entity) => entity.ttd >= 0);
+    this.targets = this.targets.filter((entity) => entity.ttd > 0);
 
     // Generate new target if needed
     if (this.targets.length < this.targetsLimit) {
@@ -131,6 +143,10 @@ class TargetEntityController {
     this.targets.forEach((entity) => entity.draw());
   }
 
+  clearEntities() {
+    this.targets = [];
+  }
+
   generateNewTarget() {
     console.assert(
       this.targets.length < this.targetsLimit,
@@ -142,13 +158,68 @@ class TargetEntityController {
 const targetEntityController = new TargetEntityController();
 
 // ============================================================================
+// Game Manager
+
+class GameManager {
+  /**
+   * If game is in progress
+   * @type {boolean}
+   * @public
+   */
+  isGameInProgress = false;
+
+  /**
+   * Current score i.e. number of hits that killed target
+   * @type {number}
+   * @private
+   */
+  currentScore = 0;
+
+  /**
+   * Current misses i.e. number of hits that missed target
+   * @type {number}
+   * @private
+   */
+  currentMiss = 0;
+
+  startGame() {
+    this.isGameInProgress = true;
+  }
+
+  pauseGame() {
+    this.isGameInProgress = false;
+  }
+
+  didHit() {
+    this.currentScore += 1;
+    console.info(`[hit] current score: ${this.currentScore}`);
+  }
+
+  didMiss() {
+    this.currentMiss += 1;
+    console.info(`[miss] current misses: ${this.currentMiss}`);
+  }
+}
+const gameManager = new GameManager();
+
+// ============================================================================
 // Game engine callbacks
 
-function updateGame() {
-  targetEntityController.update();
+function engineDidPause() {
+  gameManager.pauseGame();
 }
 
-function drawGame() {
+function engineDidPlay() {
+  gameManager.startGame();
+}
+
+function engineDidUpdate() {
+  if (gameManager.isGameInProgress) {
+    targetEntityController.update();
+  }
+}
+
+function engineDidDraw() {
   // Clear rect first
   ctx.clearRect(0, 0, gameConfig.width, gameConfig.height);
 
@@ -159,15 +230,15 @@ function drawGame() {
  * User did left click on canvas
  * @param {{x: number, y: number}} coordinate coordinates of left click relative to canvas
  */
-function didLeftClick(coordinate) {
+function engineDidLeftClick(coordinate) {
   targetEntityController.shootAt = coordinate;
 }
 
 // ============================================================================
 
 function gameLoop() {
-  updateGame();
-  drawGame();
+  engineDidUpdate();
+  engineDidDraw();
 }
 
 // ============================================================================
@@ -178,8 +249,6 @@ function gameLoop() {
  * @param {KeyboardEvent} event
  */
 function didKeyDown(event) {
-  console.log(`[Did key down: ${event.key}]`);
-
   // Play or pause game if "Spacebar" is pressed
   if (event.key === ' ') {
     gameConfig.paused ? play() : pause();
@@ -198,9 +267,10 @@ function didClick(event) {
   const { clientX, clientY } = event;
   const { x, y } = canvasEl.getBoundingClientRect();
   const relativeXY = { x: clientX - x, y: clientY - y };
-  console.info('Did Click', relativeXY);
 
-  didLeftClick(relativeXY);
+  if (!gameConfig.paused) {
+    engineDidLeftClick(relativeXY);
+  }
 }
 
 // ============================================================================
@@ -209,11 +279,15 @@ function didClick(event) {
 function pause() {
   gameConfig.paused = true;
   console.info('[game] paused');
+
+  engineDidPause();
 }
 
 function play() {
   gameConfig.paused = false;
   console.info('[game] started');
+
+  engineDidPlay();
 
   startGameLoop();
 }
