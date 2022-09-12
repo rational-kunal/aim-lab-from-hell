@@ -5,10 +5,11 @@ const canvasEl = dom('game');
 const ctx = canvasEl.getContext('2d');
 
 const TARGET_ENTITY_SPAWN_PADDING = 20;
-const TARGET_ENTITY_RADIUS = 25;
+const TARGET_ENTITY_RADIUS = 30;
 const TARGET_ENTITY_START_TTD = 30;
 const TARGET_ENTITY_MAX_TTD = 10;
 const TARGET_ENTITY_TDD_DIFF_PER_UPDATE = 0.05;
+const TARGET_ENTITY_SPRITE_PADDING = 16;
 
 const GAME_LIVES_AT_START = 5;
 
@@ -61,6 +62,7 @@ class TargetEntity {
     this.x = x;
     this.y = y;
     this.r = r;
+    this.dr = 0;
     this.r2 = r ** 2;
     this.ttd = ttd;
   }
@@ -89,6 +91,14 @@ class TargetEntity {
     ctx.beginPath();
     ctx.arc(this.x, this.y, this.r, 0, 2 * Math.PI);
     ctx.fill();
+
+    ctx.drawImage(
+      dom('img-fp'),
+      this.x - this.r - TARGET_ENTITY_SPRITE_PADDING,
+      this.y - this.r - TARGET_ENTITY_SPRITE_PADDING,
+      this.r * 2 + 2 * TARGET_ENTITY_SPRITE_PADDING,
+      this.r * 2 + 2 * TARGET_ENTITY_SPRITE_PADDING
+    );
   }
 
   /**
@@ -439,6 +449,8 @@ function initializeGame() {
   gameConfig.height = canvasEl.clientHeight;
   canvasEl.width = gameConfig.width;
   canvasEl.height = gameConfig.height;
+
+  ctx.imageSmoothingEnabled = false;
 
   engineDidInitialize();
 }

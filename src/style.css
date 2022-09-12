@@ -13,6 +13,10 @@ body {
   color: #f7f7f9;
 }
 
+img {
+  image-rendering: pixelated;
+}
+
 #game {
   position: absolute;
   top: 0;
