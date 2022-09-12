@@ -6,6 +6,8 @@ const ctx = canvasEl.getContext('2d');
 
 const TARGET_ENTITY_SPAWN_PADDING = 20;
 const TARGET_ENTITY_RADIUS = 30;
+const TARGET_ENTITY_BG_MIN_RADIUS = 0;
+const TARGET_ENTITY_BG_MAX_RADIUS = TARGET_ENTITY_RADIUS + 2;
 const TARGET_ENTITY_START_TTD = 30;
 const TARGET_ENTITY_MAX_TTD = 10;
 const TARGET_ENTITY_TDD_DIFF_PER_UPDATE = 0.05;
@@ -51,6 +53,12 @@ const gameConfig = {
 // Target entity controller
 
 class TargetEntity {
+  /** Background radius */
+  bgr = TARGET_ENTITY_BG_MIN_RADIUS;
+
+  /** Rate at which background radius should increase */
+  dbgr = 0;
+
   /**
    * Base Target Entity
    * @param {number} x x-coordinate
@@ -62,7 +70,7 @@ class TargetEntity {
     this.x = x;
     this.y = y;
     this.r = r;
-    this.dr = 0;
+    this.dbgr = (TARGET_ENTITY_BG_MAX_RADIUS - this.bgr) / ttd;
     this.r2 = r ** 2;
     this.ttd = ttd;
   }
@@ -84,12 +92,13 @@ class TargetEntity {
 
   update() {
     this.ttd -= 1;
+    this.bgr += this.dbgr;
     this.ttd <= 0 && console.info('[Target Entity] expired');
   }
 
   draw() {
     ctx.beginPath();
-    ctx.arc(this.x, this.y, this.r, 0, 2 * Math.PI);
+    ctx.arc(this.x, this.y, this.bgr, 0, 2 * Math.PI);
     ctx.fill();
 
     ctx.drawImage(
