@@ -257,6 +257,7 @@ class GameManager {
   currentLives = GAME_LIVES_AT_START;
 
   startGame() {
+    sound.start();
     this.isGameInProgress = true;
   }
 
@@ -271,6 +272,8 @@ class GameManager {
 
     // Pause game
     gameOver();
+
+    sound.over();
   }
 
   pauseGame() {
@@ -279,6 +282,8 @@ class GameManager {
 
   didHit() {
     this.currentScore += 1;
+    sound.shoot();
+
     console.info(`[hit] current score: ${this.currentScore}`);
   }
 
@@ -292,7 +297,10 @@ class GameManager {
     // Its game over of there are no more lives.
     if (this.currentLives <= 0) {
       this.resetGame();
+      return;
     }
+
+    sound.miss();
   }
 }
 const gameManager = new GameManager();
