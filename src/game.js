@@ -7,13 +7,24 @@ const ctx = canvasEl.getContext('2d');
 const TARGET_ENTITY_SPAWN_PADDING = 20;
 const TARGET_ENTITY_RADIUS = 30;
 const TARGET_ENTITY_BG_MIN_RADIUS = 0;
-const TARGET_ENTITY_BG_MAX_RADIUS = TARGET_ENTITY_RADIUS + 2;
-const TARGET_ENTITY_START_TTD = 30;
+const TARGET_ENTITY_BG_MAX_RADIUS = TARGET_ENTITY_RADIUS + 10;
+const TARGET_ENTITY_START_TTD = 40;
 const TARGET_ENTITY_MAX_TTD = 10;
 const TARGET_ENTITY_TDD_DIFF_PER_UPDATE = 0.05;
 const TARGET_ENTITY_SPRITE_PADDING = 16;
 
 const GAME_LIVES_AT_START = 5;
+
+const GHOST_ASSETS = (function () {
+  return [
+    dom('img-devil'),
+    dom('img-flying-pumpkin'),
+    dom('img-ghost'),
+    dom('img-mask'),
+    dom('img-mokey-skull'),
+    dom('img-worker-skull'),
+  ];
+})();
 
 /**
  * @readonly
@@ -60,6 +71,12 @@ class TargetEntity {
   dbgr = 0;
 
   /**
+   * Image to render for this Target
+   * @type {HTMLImageElement}
+   */
+  img;
+
+  /**
    * Base Target Entity
    * @param {number} x x-coordinate
    * @param {number} y y-coordinate
@@ -73,6 +90,7 @@ class TargetEntity {
     this.dbgr = (TARGET_ENTITY_BG_MAX_RADIUS - this.bgr) / ttd;
     this.r2 = r ** 2;
     this.ttd = ttd;
+    this.img = GHOST_ASSETS.random();
   }
 
   /**
@@ -102,7 +120,7 @@ class TargetEntity {
     ctx.fill();
 
     ctx.drawImage(
-      dom('img-fp'),
+      this.img,
       this.x - this.r - TARGET_ENTITY_SPRITE_PADDING,
       this.y - this.r - TARGET_ENTITY_SPRITE_PADDING,
       this.r * 2 + 2 * TARGET_ENTITY_SPRITE_PADDING,
@@ -139,7 +157,7 @@ class TargetEntityController {
    * @type {number}
    * @private
    */
-  targetsLimit = 1;
+  targetsLimit = 2;
 
   /**
    * Shoot at this coordinates at next update
@@ -219,24 +237,28 @@ class HTMLManager {
 
   constructor() {
     this.instructionsPerGameStatus[GameStatus.NewGame] =
-      'Dont let em loose and dont miss • Fire to start game';
+      'Dont  let  em  loose  and  dont  miss  •  Fire  to  start';
     this.instructionsPerGameStatus[GameStatus.Playing] =
-      'Playing • Spacebar to pause';
+      'Dont  let  em  loose  and  dont  miss';
     this.instructionsPerGameStatus[GameStatus.Paused] =
-      'Paused • Fire to start';
+      'Paused  •  Fire  to  start';
     this.instructionsPerGameStatus[GameStatus.GameOver] =
-      'All Hell Loose • Fire to re-start';
+      'All  Hell  Loose  •  Fire  to  start';
   }
 
   update() {
     dom('ui-instructions').innerText =
       this.instructionsPerGameStatus[gameConfig.status];
+    const heartImg = dom('img-heart').cloneNode(true);
+    heartImg.hidden = false;
+    const ripImg = dom('img-rip').cloneNode(true);
+    ripImg.hidden = false;
     const lives =
       gameConfig.status === GameStatus.GameOver
-        ? '🕱'
-        : '♥'.repeat(gameManager.currentLives);
-    const allScore = `${lives} • ${gameManager.currentScore}`;
-    dom('ui-all-score').innerText = allScore;
+        ? ripImg.outerHTML
+        : heartImg.outerHTML.repeat(gameManager.currentLives);
+    const allScore = `${lives}   ${gameManager.currentScore}`;
+    dom('ui-all-score').innerHTML = allScore;
   }
 }
 const htmlManager = new HTMLManager();
@@ -468,6 +490,7 @@ function initializeGame() {
   canvasEl.height = gameConfig.height;
 
   ctx.imageSmoothingEnabled = false;
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
 
   engineDidInitialize();
 }

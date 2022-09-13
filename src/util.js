@@ -14,3 +14,7 @@ const randomNumber = (min, max) => {
  * @returns {HTMLElement}
  */
 const dom = (ID) => document.getElementById(ID);
+
+Array.prototype.random = function () {
+  return this[Math.floor(Math.random() * this.length)];
+};
